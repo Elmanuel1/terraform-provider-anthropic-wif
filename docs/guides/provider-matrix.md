@@ -26,9 +26,6 @@ terraform {
   required_providers {
     anthropic = {
       source = "Elmanuel1/anthropic"
-      # No version is pinned, so terraform init installs the latest release.
-      # See https://registry.terraform.io/providers/Elmanuel1/anthropic/latest
-      # and pin the current version for production.
     }
   }
 }
