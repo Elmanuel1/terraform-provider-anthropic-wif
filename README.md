@@ -49,13 +49,15 @@ Every resource also has a matching `data.anthropic_*` data source.
 | Resource | Auth | What it is |
 |---|---|---|
 | `anthropic_agent` | API key or WIF | An agent: model, system prompt, tools, MCP servers, skills, multiagent config |
-| `anthropic_environment` | WIF | Where agents run: networking, allowed hosts, packages, cloud or self-hosted |
+| `anthropic_environment` | API key or WIF | Where agents run: networking, allowed hosts, packages, cloud or self-hosted |
 | `anthropic_deployment` | API key or WIF | Binds an agent to an environment; optional cron `schedule`; pause/unpause |
 | `anthropic_skill` | API key or WIF | A skill uploaded from a local directory containing a `SKILL.md` |
-| `anthropic_vault` | WIF | A workspace-scoped vault holding MCP server credentials |
-| `anthropic_vault_credential` | WIF | A credential in a vault (`static_bearer` or `mcp_oauth`) — secrets are write-only |
+| `anthropic_vault` | API key or WIF | A workspace-scoped vault holding MCP server credentials |
+| `anthropic_vault_credential` | API key or WIF | A credential in a vault (`static_bearer` or `mcp_oauth`) — secrets are write-only |
 | `anthropic_workspace` | Admin key | A workspace |
 | `anthropic_memory_store` | Admin key | A memory store for agent persistence |
+
+Workspace-scoped resources (the first six) accept either a workspace API key or WIF. Org-level resources (`workspace`, `memory_store`) use the Admin API key.
 
 ---
 
@@ -69,7 +71,7 @@ Pick the method that matches where Terraform runs.
 | **Setup** | Paste one key | ~5 min one-time console setup |
 | **Secrets in CI** | A long-lived key | None — short-lived tokens per run |
 
-**API key** — set `workspace_api_key` (for agents, deployments, skills) or `admin_api_key` (for workspaces, memory stores) in the provider block. Done.
+**API key** — set `workspace_api_key` (for all workspace-scoped resources) or `admin_api_key` (for workspaces and memory stores) in the provider block. Done.
 
 **WIF** — Terraform Cloud injects an OIDC token each run, which the provider exchanges for a short-lived, workspace-scoped token. Nothing long-lived is stored. Configure three IDs in the provider block:
 
@@ -91,7 +93,7 @@ When both WIF and `workspace_api_key` are set on a resource that supports either
 | Attribute | Value | Needed for |
 |---|---|---|
 | `admin_api_key` | `sk-ant-admin-...` | `anthropic_workspace`, `anthropic_memory_store` |
-| `workspace_api_key` | `sk-ant-api03-...` | `anthropic_agent`, `anthropic_deployment`, `anthropic_skill` (non-WIF) |
+| `workspace_api_key` | `sk-ant-api03-...` | All workspace-scoped resources (agents, environments, deployments, skills, vaults, vault credentials), when not using WIF |
 | `federation_rule_id` | `fdrl_...` | WIF resources |
 | `organization_id` | org UUID | WIF resources |
 | `service_account_id` | `svac_...` | WIF resources |
