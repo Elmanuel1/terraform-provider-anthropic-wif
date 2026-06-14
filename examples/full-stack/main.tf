@@ -2,7 +2,8 @@ terraform {
   required_version = ">= 1.5.0"
   required_providers {
     anthropic = {
-      source = "Elmanuel1/anthropic"
+      source  = "Elmanuel1/anthropic"
+      version = "<LATEST_VERSION>" # see the registry: https://registry.terraform.io/providers/Elmanuel1/anthropic/latest
     }
   }
 }
