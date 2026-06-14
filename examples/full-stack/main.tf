@@ -2,8 +2,9 @@ terraform {
   required_version = ">= 1.5.0"
   required_providers {
     anthropic = {
-      source  = "Elmanuel1/anthropic"
-      version = "~> 0.3"
+      source = "Elmanuel1/anthropic"
+      # No version pinned: terraform init installs the latest release.
+      # See https://registry.terraform.io/providers/Elmanuel1/anthropic/latest
     }
   }
 }
