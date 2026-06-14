@@ -1,5 +1,5 @@
 ---
-page_title: "Provider Matrix — All Auth Modes"
+page_title: "Provider Matrix: All Auth Modes"
 description: |-
   Full working example using all three provider aliases (admin, wif, workspace) in a single configuration, with guidance on TFC workspace separation.
 ---
