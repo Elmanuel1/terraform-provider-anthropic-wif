@@ -1,21 +1,21 @@
 ---
-page_title: "Provider Matrix — All Auth Modes"
+page_title: "Provider Matrix: All Auth Modes"
 description: |-
   Full working example using all three provider aliases (admin, wif, workspace) in a single configuration, with guidance on TFC workspace separation.
 ---
 
-# Provider Matrix — All Auth Modes
+# Provider Matrix: All Auth Modes
 
 This guide shows a complete configuration that exercises all three authentication paths the provider supports: Admin API key, Workload Identity Federation (WIF), and workspace API key. It mirrors the layout used to test the provider itself.
 
 ## TFC Workspace Separation
 
-~> **Recommendation:** Use **two separate Terraform Cloud workspaces** — one for workspace-level infrastructure and one for workload resources.
+~> **Recommendation:** Use **two separate Terraform Cloud workspaces**: one for workspace-level infrastructure and one for workload resources.
 
 | TFC Workspace | Provider alias | Resources managed |
 |---|---|---|
-| `anthropic-admin` | `anthropic.admin` | `anthropic_workspace` |
-| `anthropic-workloads` | `anthropic.wif`, `anthropic.workspace` | `anthropic_environment`, `anthropic_vault`, `anthropic_vault_credential`, `anthropic_agent` |
+| `anthropic-admin` | `anthropic.admin` | `anthropic_workspace`, `anthropic_memory_store` |
+| `anthropic-workloads` | `anthropic.wif`, `anthropic.workspace` | `anthropic_environment`, `anthropic_vault`, `anthropic_vault_credential`, `anthropic_agent`, `anthropic_deployment`, `anthropic_skill` |
 
 **Why separate them?** The `admin` provider uses an Admin API key scoped to your entire Anthropic organization and can create or delete workspaces. Keeping it in its own TFC workspace with tighter access controls (separate state, separate variable set, restricted team access) prevents a routine workload change from accidentally destroying a workspace and everything in it. Workspace IDs referenced by the workloads TFC workspace can be passed as remote state outputs or hardcoded after initial creation.
 
@@ -26,18 +26,18 @@ terraform {
   required_providers {
     anthropic = {
       source  = "Elmanuel1/anthropic"
-      version = "~> 0.3.5"
+      version = "<LATEST_VERSION>" # see the registry: https://registry.terraform.io/providers/Elmanuel1/anthropic/latest
     }
   }
 }
 
-# Admin API key — organization-level operations (workspace CRUD)
+# Admin API key: organization-level operations (workspace CRUD)
 provider "anthropic" {
   alias         = "admin"
   admin_api_key = var.anthropic_admin_api_key
 }
 
-# WIF — workspace-scoped operations authenticated via Terraform Cloud OIDC
+# WIF: workspace-scoped operations authenticated via Terraform Cloud OIDC
 provider "anthropic" {
   alias              = "wif"
   federation_rule_id = var.anthropic_federation_rule_id
@@ -45,7 +45,7 @@ provider "anthropic" {
   service_account_id = var.anthropic_service_account_id
 }
 
-# Workspace API key — workspace-scoped operations authenticated via static key
+# Workspace API key: workspace-scoped operations authenticated via static key
 provider "anthropic" {
   alias             = "workspace"
   workspace_api_key = var.anthropic_workspace_api_key
@@ -92,13 +92,13 @@ variable "slack_mcp_url" {
 Managed by the `admin` provider. Keep this in its own TFC workspace.
 
 ```terraform
-# Primary workspace — all WIF workload resources live here
+# Primary workspace: all WIF workload resources live here
 resource "anthropic_workspace" "primary" {
   provider = anthropic.admin
   name     = "my-team-workspace"
 }
 
-# Secondary workspace — tested via workspace API key
+# Secondary workspace: tested via workspace API key
 resource "anthropic_workspace" "secondary" {
   provider = anthropic.admin
   name     = "my-team-workspace-secondary"
@@ -200,7 +200,7 @@ resource "anthropic_agent" "wif" {
 
 ## workspace_apikey.tf
 
-Same resource set authenticated via workspace API key. No `workspace_id` required — the key already scopes the request.
+Same resource set authenticated via workspace API key. No `workspace_id` required; the key already scopes the request.
 
 ```terraform
 resource "anthropic_environment" "workspace" {
@@ -329,7 +329,7 @@ tools = jsonencode([
 
 | Attribute | WIF | Workspace API key |
 |---|---|---|
-| `workspace_id` | Required on every resource | Omit — key is already workspace-scoped |
+| `workspace_id` | Required on every resource | Omit; key is already workspace-scoped |
 | Token source | Short-lived OIDC-minted token (auto-refreshed per run) | Static long-lived key (rotate manually) |
 | Suitable for | CI/CD, Terraform Cloud, automated pipelines | Local development, simple scripts |
 

@@ -3,13 +3,13 @@ terraform {
   required_providers {
     anthropic = {
       source  = "Elmanuel1/anthropic"
-      version = "~> 0.3"
+      version = "<LATEST_VERSION>" # see the registry: https://registry.terraform.io/providers/Elmanuel1/anthropic/latest
     }
   }
 }
 
 # ---------------------------------------------------------------------------
-# Provider — workspace API key auth (no WIF needed for local testing)
+# Provider: workspace API key auth (no WIF needed for local testing)
 # ---------------------------------------------------------------------------
 provider "anthropic" {
   workspace_api_key = var.workspace_api_key
@@ -24,7 +24,7 @@ resource "anthropic_workspace" "test" {
 }
 
 # ---------------------------------------------------------------------------
-# Environment — limited networking + packages + MCP server access
+# Environment: limited networking + packages + MCP server access
 # ---------------------------------------------------------------------------
 resource "anthropic_environment" "test" {
   workspace_id = anthropic_workspace.test.id
@@ -52,7 +52,7 @@ resource "anthropic_environment" "test" {
 }
 
 # ---------------------------------------------------------------------------
-# Agent — MCP servers + tool permissions
+# Agent: MCP servers + tool permissions
 # ---------------------------------------------------------------------------
 resource "anthropic_agent" "test" {
   workspace_id = anthropic_workspace.test.id
@@ -77,7 +77,7 @@ resource "anthropic_agent" "test" {
     }
   ])
 
-  # Tool permissions — agent_toolset grants access to all built-in tools;
+  # Tool permissions: agent_toolset grants access to all built-in tools;
   # mcp_toolset restricts which tools are exposed from each MCP server
   tools = jsonencode([
     {
