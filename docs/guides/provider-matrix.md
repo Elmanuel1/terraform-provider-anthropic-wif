@@ -14,8 +14,8 @@ This guide shows a complete configuration that exercises all three authenticatio
 
 | TFC Workspace | Provider alias | Resources managed |
 |---|---|---|
-| `anthropic-admin` | `anthropic.admin` | `anthropic_workspace` |
-| `anthropic-workloads` | `anthropic.wif`, `anthropic.workspace` | `anthropic_environment`, `anthropic_vault`, `anthropic_vault_credential`, `anthropic_agent` |
+| `anthropic-admin` | `anthropic.admin` | `anthropic_workspace`, `anthropic_memory_store` |
+| `anthropic-workloads` | `anthropic.wif`, `anthropic.workspace` | `anthropic_environment`, `anthropic_vault`, `anthropic_vault_credential`, `anthropic_agent`, `anthropic_deployment`, `anthropic_skill` |
 
 **Why separate them?** The `admin` provider uses an Admin API key scoped to your entire Anthropic organization and can create or delete workspaces. Keeping it in its own TFC workspace with tighter access controls (separate state, separate variable set, restricted team access) prevents a routine workload change from accidentally destroying a workspace and everything in it. Workspace IDs referenced by the workloads TFC workspace can be passed as remote state outputs or hardcoded after initial creation.
 
@@ -25,8 +25,10 @@ This guide shows a complete configuration that exercises all three authenticatio
 terraform {
   required_providers {
     anthropic = {
-      source  = "Elmanuel1/anthropic"
-      version = "~> 0.3.5"
+      source = "Elmanuel1/anthropic"
+      # No version is pinned, so terraform init installs the latest release.
+      # See https://registry.terraform.io/providers/Elmanuel1/anthropic/latest
+      # and pin the current version for production.
     }
   }
 }
