@@ -16,7 +16,8 @@ The fastest path uses a workspace API key. (Running in CI? Skip to [Authenticati
 terraform {
   required_providers {
     anthropic = {
-      source = "Elmanuel1/anthropic"
+      source  = "Elmanuel1/anthropic"
+      version = "<LATEST_VERSION>" # see the registry: https://registry.terraform.io/providers/Elmanuel1/anthropic/latest
     }
   }
 }
