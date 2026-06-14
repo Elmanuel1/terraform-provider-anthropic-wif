@@ -1,94 +1,118 @@
 # terraform-provider-anthropic
 
-Terraform provider for managing Anthropic platform resources.
+> Manage **Anthropic Managed Agents** — agents, the environments they run in, scheduled deployments, skills, and MCP credential vaults — as Terraform.
 
-Registry: [registry.terraform.io/providers/Elmanuel1/anthropic](https://registry.terraform.io/providers/Elmanuel1/anthropic/latest)
+[![Terraform Registry](https://img.shields.io/badge/registry-Elmanuel1%2Fanthropic-7B42BC?logo=terraform)](https://registry.terraform.io/providers/Elmanuel1/anthropic/latest)
 
-## Resources
+**Registry:** [Elmanuel1/anthropic](https://registry.terraform.io/providers/Elmanuel1/anthropic/latest) · **WIF setup:** [authentication guide](docs/guides/authentication.md) · **Changelog:** [CHANGELOG.md](CHANGELOG.md)
 
-| Resource | Auth | Description |
-|---|---|---|
-| `anthropic_workspace` | `admin_api_key` | Anthropic workspace |
-| `anthropic_memory_store` | `admin_api_key` | Memory store for agent persistence |
-| `anthropic_agent` | WIF or `workspace_api_key` | Anthropic agent |
-| `anthropic_environment` | WIF | Execution environment for agents |
-| `anthropic_vault` | WIF | Vault for storing credentials |
-| `anthropic_vault_credential` | WIF | MCP server credential in a vault |
+---
 
-## Quick Start
+## Get started in 60 seconds
 
-### WIF authentication
+The fastest path uses a workspace API key. (Running in CI? Skip to [Authentication](#authentication) and use WIF instead.)
 
 ```terraform
 terraform {
   required_providers {
     anthropic = {
       source  = "Elmanuel1/anthropic"
-      version = "~> 0.1"
+      version = "~> 0.6"
     }
   }
 }
 
 provider "anthropic" {
-  federation_rule_id = var.anthropic_federation_rule_id
-  organization_id    = var.anthropic_organization_id
-  service_account_id = var.anthropic_service_account_id
+  workspace_api_key = var.anthropic_workspace_api_key # sk-ant-api03-...
 }
 
-resource "anthropic_workspace" "example" {
-  name = "my-workspace"
-}
-
-resource "anthropic_agent" "example" {
-  workspace_id = anthropic_workspace.example.id
-  name         = "my-agent"
-  model        = "claude-sonnet-4-6"
-  system       = "You are a helpful assistant."
-}
-```
-
-### Workspace API key authentication
-
-```terraform
-provider "anthropic" {
-  workspace_api_key = var.anthropic_workspace_api_key
-}
-
-resource "anthropic_agent" "example" {
-  name   = "my-agent"
+resource "anthropic_agent" "hello" {
+  name   = "hello-agent"
   model  = "claude-sonnet-4-6"
   system = "You are a helpful assistant."
 }
 ```
 
-## Provider Configuration
+```bash
+export TF_VAR_anthropic_workspace_api_key="sk-ant-api03-..."
+terraform init && terraform apply
+```
 
-| Attribute | Description | Required for |
+That's it — you now have an agent managed in Terraform. Next, give it somewhere to run (an `environment`) and put it live (a `deployment`); see [`examples/full-stack`](examples/full-stack).
+
+---
+
+## What you can manage
+
+Every resource also has a matching `data.anthropic_*` data source.
+
+| Resource | Auth | What it is |
 |---|---|---|
-| `admin_api_key` | Admin API key (`sk-ant-admin-...`) | `anthropic_workspace`, `anthropic_memory_store` |
-| `workspace_api_key` | Workspace API key (`sk-ant-api03-...`) | `anthropic_agent` (non-WIF) |
-| `federation_rule_id` | Federation rule ID (`fdrl_...`) | WIF resources |
-| `organization_id` | Organization UUID | WIF resources |
-| `service_account_id` | Service account ID (`svac_...`) | WIF resources |
+| `anthropic_agent` | API key or WIF | An agent: model, system prompt, tools, MCP servers, skills, multiagent config |
+| `anthropic_environment` | WIF | Where agents run: networking, allowed hosts, packages, cloud or self-hosted |
+| `anthropic_deployment` | API key or WIF | Binds an agent to an environment; optional cron `schedule`; pause/unpause |
+| `anthropic_skill` | API key or WIF | A skill uploaded from a local directory containing a `SKILL.md` |
+| `anthropic_vault` | WIF | A workspace-scoped vault holding MCP server credentials |
+| `anthropic_vault_credential` | WIF | A credential in a vault (`static_bearer` or `mcp_oauth`) — secrets are write-only |
+| `anthropic_workspace` | Admin key | A workspace |
+| `anthropic_memory_store` | Admin key | A memory store for agent persistence |
 
-The WIF token (`TFC_WORKLOAD_IDENTITY_TOKEN_ANTHROPIC` or `TFC_WORKLOAD_IDENTITY_TOKEN`) is read from the environment — Terraform Cloud injects it automatically.
+---
 
-## Anthropic Console Setup
+## Authentication
 
-1. **Workload Identity Issuer**: Console → Settings → Workload Identity → Create issuer
-   - Issuer URL: `https://app.terraform.io` | JWKS source: `discovery` | Max token lifetime: `2h`
+Pick the method that matches where Terraform runs.
 
-2. **Service Account**: Console → Settings → Service Accounts → Create
-   - Assign `Workspace Developer` on each workspace this account manages
+| | Workspace API key | Workload Identity Federation (WIF) |
+|---|---|---|
+| **Use when** | Local dev, trying it out | CI / Terraform Cloud, production |
+| **Setup** | Paste one key | ~5 min one-time console setup |
+| **Secrets in CI** | A long-lived key | None — short-lived tokens per run |
 
-3. **Federation Rule**: Console → Settings → Federation Rules → Create
-   - Target: service account from step 2 | Scope: `workspace:developer` | Token lifetime: `2h`
-   - CEL condition:
-     ```cel
-     claims.sub.matches("^organization:<tfc-org>:project:<tfc-project>:workspace:<tfc-workspace>:run_phase:(plan|apply)$")
-     ```
+**API key** — set `workspace_api_key` (for agents, deployments, skills) or `admin_api_key` (for workspaces, memory stores) in the provider block. Done.
 
-## Local Development
+**WIF** — Terraform Cloud injects an OIDC token each run, which the provider exchanges for a short-lived, workspace-scoped token. Nothing long-lived is stored. Configure three IDs in the provider block:
+
+```terraform
+provider "anthropic" {
+  federation_rule_id = var.anthropic_federation_rule_id # fdrl_...
+  organization_id    = var.anthropic_organization_id    # org UUID
+  service_account_id = var.anthropic_service_account_id  # svac_...
+}
+```
+
+> 📖 **Setting up WIF? Start here → [docs/guides/authentication.md](docs/guides/authentication.md)**
+> The complete guide: console setup (issuer, service account, federation rule), the CEL condition, token-lifetime tuning, and every failure reason mapped to a fix. To iterate locally without Terraform Cloud, see [local WIF testing](docs/wif-local-testing.md).
+
+When both WIF and `workspace_api_key` are set on a resource that supports either, **WIF wins**.
+
+### Provider attributes
+
+| Attribute | Value | Needed for |
+|---|---|---|
+| `admin_api_key` | `sk-ant-admin-...` | `anthropic_workspace`, `anthropic_memory_store` |
+| `workspace_api_key` | `sk-ant-api03-...` | `anthropic_agent`, `anthropic_deployment`, `anthropic_skill` (non-WIF) |
+| `federation_rule_id` | `fdrl_...` | WIF resources |
+| `organization_id` | org UUID | WIF resources |
+| `service_account_id` | `svac_...` | WIF resources |
+
+---
+
+## Examples
+
+Runnable configs in [`examples/`](examples):
+
+| Example | Shows |
+|---|---|
+| [`full-stack`](examples/full-stack) | Workspace + agent + environment + vault wired together |
+| [`wif-test`](examples/wif-test) | WIF authentication end to end |
+| [`deployment-test`](examples/deployment-test) | Scheduled and on-demand deployments |
+| [`skill-test`](examples/skill-test) | Uploading a skill from a local directory |
+| [`workspace-test`](examples/workspace-test) | Workspace management via the Admin API |
+
+---
+
+## Local development
 
 ```bash
 go build -o terraform-provider-anthropic .
@@ -103,3 +127,13 @@ provider_installation {
   direct {}
 }
 ```
+
+---
+
+## Docs
+
+- [Authentication & WIF guide](docs/guides/authentication.md)
+- [Local WIF testing with ngrok](docs/wif-local-testing.md)
+- [Provider matrix](docs/guides/provider-matrix.md)
+- [Resources](docs/resources) · [Data sources](docs/data-sources)
+- [Changelog](CHANGELOG.md)
