@@ -67,13 +67,13 @@ Pick the method that matches where Terraform runs.
 
 | | Workspace API key | Workload Identity Federation (WIF) |
 |---|---|---|
-| **Use when** | Local dev, trying it out | CI / Terraform Cloud, production |
+| **Use when** | Local dev, a single workspace, trying it out | CI / Terraform Cloud and production — managing multiple workspaces, or federating an existing OIDC workload identity (Terraform Cloud, Kubernetes, AWS, GitHub Actions) |
 | **Setup** | Paste one key | ~5 min one-time console setup |
 | **Secrets in CI** | A long-lived key | None — short-lived tokens per run |
 
-**API key** — set `workspace_api_key` (for all workspace-scoped resources) or `admin_api_key` (for workspaces and memory stores) in the provider block. Done.
+**API key** — set `workspace_api_key` (for all workspace-scoped resources) or `admin_api_key` (for workspaces and memory stores) in the provider block. A workspace API key is scoped to one workspace, so managing several means juggling several keys.
 
-**WIF** — Terraform Cloud injects an OIDC token each run, which the provider exchanges for a short-lived, workspace-scoped token. Nothing long-lived is stored. Configure three IDs in the provider block:
+**WIF** — the provider exchanges an OIDC token for a short-lived, workspace-scoped token, so nothing long-lived is stored. One service account and federation rule can mint tokens for many workspaces (set `workspace_id` per resource), which is why WIF scales across a fleet better than per-workspace keys. Configure three IDs in the provider block:
 
 ```terraform
 provider "anthropic" {
@@ -82,6 +82,8 @@ provider "anthropic" {
   service_account_id = var.anthropic_service_account_id  # svac_...
 }
 ```
+
+The token exchange is a standard OAuth2 `jwt-bearer` flow, so any OIDC issuer registered on Anthropic works. Terraform Cloud injects the OIDC token automatically. Other issuers — Kubernetes projected service account tokens, AWS, GitHub Actions — work too: place the JWT in `TFC_WORKLOAD_IDENTITY_TOKEN` (or `TFC_WORKLOAD_IDENTITY_TOKEN_ANTHROPIC`) and register the matching issuer in the Anthropic console.
 
 > 📖 **Setting up WIF? Start here → [docs/guides/authentication.md](docs/guides/authentication.md)**
 > The complete guide: console setup (issuer, service account, federation rule), the CEL condition, token-lifetime tuning, and every failure reason mapped to a fix. To iterate locally without Terraform Cloud, see [local WIF testing](docs/wif-local-testing.md).
