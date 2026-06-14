@@ -16,8 +16,10 @@ The fastest path uses a workspace API key. (Running in CI? Skip to [Authenticati
 terraform {
   required_providers {
     anthropic = {
-      source  = "Elmanuel1/anthropic"
-      version = "~> 0.6"
+      source = "Elmanuel1/anthropic"
+      # No version is pinned here, so terraform init installs the latest release.
+      # Check the registry for the current version and pin it for production:
+      # https://registry.terraform.io/providers/Elmanuel1/anthropic/latest
     }
   }
 }
@@ -37,6 +39,8 @@ resource "anthropic_agent" "hello" {
 export TF_VAR_anthropic_workspace_api_key="sk-ant-api03-..."
 terraform init && terraform apply
 ```
+
+Use the latest provider release. The block above omits a `version` constraint so `terraform init` installs the newest version; run `terraform init -upgrade` to move an existing project up. For production, pin the version shown on the [registry](https://registry.terraform.io/providers/Elmanuel1/anthropic/latest).
 
 That's it — you now have an agent managed in Terraform. Next, give it somewhere to run (an `environment`) and put it live (a `deployment`); see [`examples/full-stack`](examples/full-stack).
 
